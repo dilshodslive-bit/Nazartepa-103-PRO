@@ -44,7 +44,10 @@ async def test_citizen_can_create_call(client: AsyncClient) -> None:
     assert resp.status_code == 201
     body = resp.json()
     assert body["status"] == "new"
-    assert body["priority"] is None
+    # Avtomatik AI triaj ishlaydi: shikoyatda "nafas qisilyapti" (RED) bor
+    assert body["priority"] == "red"
+    assert body["priority_source"] == "ai"
+    assert body["ai_provider"] == "rule_based"
     assert body["media_urls"] == []
     assert body["created_by_id"] is not None
 

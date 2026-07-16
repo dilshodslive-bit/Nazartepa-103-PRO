@@ -5,7 +5,15 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.emergency.models import CallEvent, CallStatus, EmergencyCall, Priority
+from app.modules.ai_triage.provider import TriageResult
+from app.modules.ai_triage.service import TriageService
+from app.modules.emergency.models import (
+    CallEvent,
+    CallStatus,
+    EmergencyCall,
+    Priority,
+    PrioritySource,
+)
 from app.modules.emergency.schemas import EmergencyCallCreate, EmergencyCallUpdate
 from app.shared.exceptions import AppError, NotFoundError
 
@@ -27,8 +35,9 @@ class InvalidStatusTransition(AppError):
 
 
 class EmergencyCallService:
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession, triage: TriageService | None = None) -> None:
         self.db = db
+        self.triage = triage or TriageService()
 
     async def get(self, call_id: int) -> EmergencyCall:
         call = await self.db.get(EmergencyCall, call_id)
@@ -85,14 +94,42 @@ class EmergencyCallService:
                 note="Murojaat yaratildi",
             )
         )
+        # Avtomatik AI triaj (rule_based default — offline; xatoda zaxira ishlaydi)
+        result = await self.triage.assess(call.complaint)
+        self._apply_triage(call, result)
+        await self.db.flush()
+        await self.db.refresh(call)
+        return call
+
+    def _apply_triage(self, call: EmergencyCall, result: TriageResult) -> None:
+        """AI triaj natijasini murojaatga yozadi (faqat qo'lda o'zgartirilmagan bo'lsa)."""
+        # Operator qo'lda belgilagan ustuvorlikni AI ustiga yozib yubormaydi
+        if call.priority_source != PrioritySource.MANUAL:
+            call.priority = result.priority
+            call.priority_source = PrioritySource.AI
+        call.ai_severity = result.severity
+        call.ai_recommended_brigade = result.recommended_brigade
+        call.ai_confidence = result.confidence
+        call.ai_reason = result.reason
+        call.ai_provider = result.provider
+
+    async def run_triage(self, call_id: int) -> EmergencyCall:
+        """Murojaatni qayta baholaydi (operator qo'lda so'raganda)."""
+        call = await self.get(call_id)
+        result = await self.triage.assess(call.complaint)
+        self._apply_triage(call, result)
         await self.db.flush()
         await self.db.refresh(call)
         return call
 
     async def update(self, call_id: int, data: EmergencyCallUpdate) -> EmergencyCall:
         call = await self.get(call_id)
-        for field, value in data.model_dump(exclude_unset=True).items():
+        fields = data.model_dump(exclude_unset=True)
+        for field, value in fields.items():
             setattr(call, field, value)
+        # Ustuvorlik qo'lda o'zgartirilsa — manba "manual" bo'lib qoladi
+        if "priority" in fields:
+            call.priority_source = PrioritySource.MANUAL
         await self.db.flush()
         await self.db.refresh(call)
         return call

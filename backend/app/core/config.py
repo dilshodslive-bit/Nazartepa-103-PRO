@@ -53,7 +53,10 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b"
     openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
     anthropic_api_key: str | None = None
+    # Tavsiya: triaj (klassifikatsiya) uchun tez/arzon model, masalan claude-haiku-4-5
+    anthropic_model: str = "claude-opus-4-8"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.modules.emergency.models import CallStatus, Priority
+from app.modules.emergency.models import CallStatus, Priority, PrioritySource
 
 
 class EmergencyCallCreate(BaseModel):
@@ -61,6 +61,13 @@ class EmergencyCallRead(BaseModel):
     media_urls: list[str]
     status: CallStatus
     priority: Priority | None
+    priority_source: PrioritySource | None
+    # AI triaj natijasi
+    ai_severity: int | None
+    ai_recommended_brigade: str | None
+    ai_confidence: float | None
+    ai_reason: str | None
+    ai_provider: str | None
     created_by_id: int | None
     created_at: datetime
     updated_at: datetime

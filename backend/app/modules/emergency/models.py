@@ -3,7 +3,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, String, Text, func
+from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.base import Base, IntPKMixin, TimestampMixin
@@ -31,6 +31,13 @@ class Priority(enum.StrEnum):
     RED = "red"  # hayotiy xavf — zudlik bilan
     YELLOW = "yellow"  # shoshilinch, lekin barqaror
     GREEN = "green"  # shoshilinch emas
+
+
+class PrioritySource(enum.StrEnum):
+    """Ustuvorlikni kim belgiladi."""
+
+    AI = "ai"  # avtomatik triaj
+    MANUAL = "manual"  # operator qo'lda o'zgartirdi
 
 
 def _enum_col(enum_cls: type[enum.StrEnum], name: str) -> Enum:
@@ -71,6 +78,16 @@ class EmergencyCall(IntPKMixin, TimestampMixin, Base):
         nullable=True,
         index=True,
     )
+    priority_source: Mapped[PrioritySource | None] = mapped_column(
+        _enum_col(PrioritySource, "priority_source"), default=None, nullable=True
+    )
+
+    # --- AI triaj natijasi (M3) ---
+    ai_severity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ai_recommended_brigade: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    ai_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ai_reason: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    ai_provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     # --- Kim qabul qildi (operator yoki murojaatchi) ---
     created_by_id: Mapped[int | None] = mapped_column(

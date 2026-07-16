@@ -89,6 +89,18 @@ async def change_call_status(
     return EmergencyCallRead.model_validate(call)
 
 
+@router.post("/{call_id}/triage", response_model=EmergencyCallRead)
+async def retriage_call(
+    call_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(require_role(UserRole.OPERATOR)),
+) -> EmergencyCallRead:
+    """Murojaatni AI orqali qayta baholash (operator+). Qo'lda o'zgartirilgan
+    ustuvorlik saqlanadi, faqat AI tavsiyalari yangilanadi."""
+    call = await EmergencyCallService(db).run_triage(call_id)
+    return EmergencyCallRead.model_validate(call)
+
+
 @router.get("/{call_id}/events", response_model=list[CallEventRead])
 async def list_call_events(
     call_id: int,
