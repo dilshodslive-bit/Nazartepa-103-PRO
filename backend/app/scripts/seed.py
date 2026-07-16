@@ -5,6 +5,7 @@ Ishlatish:  python -m app.scripts.seed
 
 import asyncio
 
+import app.models  # noqa: F401  # barcha ORM modellarini registrga yuklaydi (RefreshToken relationship uchun)
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.modules.users.service import UserService
