@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.logging import logger, setup_logging
 from app.core.middleware import RequestContextMiddleware
 from app.modules.auth.router import router as auth_router
+from app.modules.emergency.router import router as emergency_router
 from app.modules.users.router import router as users_router
 from app.shared.exceptions import AppError
 
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     # --- Routerlar ---
     app.include_router(auth_router, prefix=settings.api_v1_prefix)
     app.include_router(users_router, prefix=settings.api_v1_prefix)
+    app.include_router(emergency_router, prefix=settings.api_v1_prefix)
 
     # --- Sog'liq va metrika ---
     @app.get("/health", tags=["system"])
